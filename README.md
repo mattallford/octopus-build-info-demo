@@ -4,7 +4,7 @@ A demonstration project showcasing how to integrate GitHub Actions with Octopus 
 
 ## Overview
 
-This project demonstrates the complete CI/CD pipeline integration between GitHub Actions and Octopus Deploy. It shows how to:
+This project demonstrates the complete CI/CD pipeline integration between GitHub Actions and Octopus Deploy. It shows how to:  
 
 - Build and package a Node.js application
 - Push packages to Octopus Deploy
