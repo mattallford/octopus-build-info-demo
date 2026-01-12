@@ -1,0 +1,96 @@
+name: Build and Deploy to Octopus Deploy
+
+# Trigger this workflow on push to main or pull requests targeting main
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Checkout the repository code
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # Step 2: Set up Node.js environment
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+
+      # Step 3: Set environment variables
+      # SHOULD_DEPLOY: Only deploy to Octopus when pushing to main branch (not on PRs)
+      # PACKAGE_VERSION: Version format is 1.0.<build_number>
+      - name: Set environment variables
+        run: |
+          if [ "${{ github.event_name }}" == "push" ] && [ "${{ github.ref }}" == "refs/heads/main" ]; then
+            echo "SHOULD_DEPLOY=true" >> $GITHUB_ENV
+          else
+            echo "SHOULD_DEPLOY=false" >> $GITHUB_ENV
+          fi
+          echo "PACKAGE_VERSION=1.0.${{ github.run_number }}" >> $GITHUB_ENV
+
+      # Step 4: Display environment information for debugging
+      - name: Display build information
+        run: |
+          echo "Event: ${{ github.event_name }}"
+          echo "Branch: ${{ github.ref }}"
+          echo "Should Deploy: ${{ env.SHOULD_DEPLOY }}"
+          echo "Package Version: ${{ env.PACKAGE_VERSION }}"
+          echo "Commit SHA: ${{ github.sha }}"
+
+      # Step 5: Install dependencies
+      - name: Install dependencies
+        run: npm install
+
+      # Step 6: Create deployment package
+      # This step has an ID so we can reference its outputs in later steps
+      - name: Create deployment package
+        id: package
+        run: |
+          PACKAGE_NAME="octopus-build-info-demo.${{ env.PACKAGE_VERSION }}.zip"
+          zip -r $PACKAGE_NAME src/ package.json
+          echo "package_file_path=$PACKAGE_NAME" >> $GITHUB_OUTPUT
+          echo "Created package: $PACKAGE_NAME"
+          ls -lh $PACKAGE_NAME
+
+      # Step 7: Push package to Octopus Deploy
+      # Only runs when SHOULD_DEPLOY is true (i.e., push to main branch)
+      - name: Push a package to Octopus Deploy 🐙
+        uses: OctopusDeploy/push-package-action@v3.0.2
+        if: ${{ env.SHOULD_DEPLOY == 'true' }}
+        with:
+          api_key: ${{ secrets.OCTOPUS_API_KEY }}
+          server: ${{ secrets.OCTOPUS_SERVER_URL }}
+          space: ${{ secrets.OCTOPUS_SPACE }}
+          packages: ${{ steps.package.outputs.package_file_path }}
+
+      # Step 8: Push build information to Octopus Deploy
+      # This sends metadata about the build (commit SHA, branch, build URL, etc.)
+      # Only runs when SHOULD_DEPLOY is true (i.e., push to main branch)
+      - name: Push build information to Octopus Deploy 🐙
+        uses: OctopusDeploy/push-build-information-action@v3
+        if: ${{ env.SHOULD_DEPLOY == 'true' }}
+        with:
+          api_key: ${{ secrets.OCTOPUS_API_KEY }}
+          server: ${{ secrets.OCTOPUS_SERVER_URL }}
+          space: ${{ secrets.OCTOPUS_SPACE }}
+          version: ${{ env.PACKAGE_VERSION }}
+          packages: ${{ steps.package.outputs.package_file_path }}
+
+      # Step 9: Summary
+      - name: Workflow summary
+        run: |
+          echo "## Build Complete ✅" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Version**: ${{ env.PACKAGE_VERSION }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Package**: ${{ steps.package.outputs.package_file_path }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Deployed to Octopus**: ${{ env.SHOULD_DEPLOY }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Branch**: ${{ github.ref }}" >> $GITHUB_STEP_SUMMARY
