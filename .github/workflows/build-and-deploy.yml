@@ -16,7 +16,7 @@ jobs:
 
     env:
       OCTOPUS_URL: "ships-staff-octopus.octopus.app"
-      OCTOPUS_API_KEY: ${{ secrets.OCTOPUSSERVERAPIKEY }}
+      OCTOPUS_API_KEY: ${{ secrets.OCTOPUS_API_KEY }}
       OCTOPUS_SPACE: "Webinar-Jan26"
 
     steps:
