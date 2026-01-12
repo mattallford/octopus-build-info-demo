@@ -1,0 +1,24 @@
+step "deploy-application" {
+    name = "Deploy Application"
+
+    action {
+        action_type = "Octopus.Script"
+        properties = {
+            Octopus.Action.Script.ScriptBody = "Write-host \"Deploying Application\""
+            Octopus.Action.Script.ScriptSource = "Inline"
+            Octopus.Action.Script.Syntax = "PowerShell"
+            OctopusUseBundledTooling = "False"
+        }
+        worker_pool = "hosted-ubuntu"
+
+        packages "octopus-build-info-demo" {
+            acquisition_location = "Server"
+            feed = "octopus-server-built-in"
+            package_id = "octopus-build-info-demo"
+            properties = {
+                Extract = "True"
+                SelectionMode = "immediate"
+            }
+        }
+    }
+}
