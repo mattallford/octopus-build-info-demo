@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      OCTOPUS_URL: "ships-staff-octopus.octopus.app"
+      OCTOPUS_URL: ${{ secrets.OCTOPUS_URL }}
       OCTOPUS_API_KEY: ${{ secrets.OCTOPUS_API_KEY }}
       OCTOPUS_SPACE: "Webinar-Jan26"
 
